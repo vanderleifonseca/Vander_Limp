@@ -6,6 +6,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<SenhaServico>();
+builder.Services.AddScoped<SessaoServico>();
 
 var app = builder.Build();
 

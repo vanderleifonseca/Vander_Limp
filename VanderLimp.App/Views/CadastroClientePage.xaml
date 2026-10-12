@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="VanderLimp.App.Views.CadastroClientePage"
+    Title="Meu cadastro">
+
+    <ScrollView>
+        <VerticalStackLayout
+            Padding="24"
+            Spacing="12">
+
+            <Image
+                Source="logo.jpeg"
+                HeightRequest="120"
+                Aspect="AspectFit"
+                SemanticProperties.Description="Logo Vander Limp" />
+
+            <Label
+                Text="Crie seu cadastro"
+                FontSize="24"
+                FontAttributes="Bold"
+                HorizontalTextAlignment="Center" />
+
+            <Label Text="Tipo de pessoa" />
+
+            <Picker
+                x:Name="TipoPessoaPicker"
+                Title="Selecione"
+                SelectedIndexChanged="OnTipoPessoaChanged">
+                <Picker.Items>
+                    <x:String>Pessoa física</x:String>
+                    <x:String>Pessoa jurídica</x:String>
+                </Picker.Items>
+            </Picker>
+
+            <Label
+                x:Name="NomeLabel"
+                Text="Nome completo" />
+
+            <Entry
+                x:Name="NomeEntry"
+                Placeholder="Informe seu nome completo"
+                MaxLength="200" />
+
+            <Label
+                x:Name="DocumentoLabel"
+                Text="CPF" />
+
+            <Entry
+                x:Name="DocumentoEntry"
+                Placeholder="CPF sem pontuação"
+                Keyboard="Numeric"
+                MaxLength="11" />
+
+            <VerticalStackLayout
+                x:Name="DadosEmpresaLayout"
+                Spacing="12"
+                IsVisible="False">
+
+                <Label Text="Nome fantasia opcional" />
+
+                <Entry
+                    x:Name="NomeFantasiaEntry"
+                    Placeholder="Nome fantasia"
+                    MaxLength="200" />
+
+                <Label Text="Nome do responsável" />
+
+                <Entry
+                    x:Name="NomeResponsavelEntry"
+                    Placeholder="Responsável pela empresa"
+                    MaxLength="200" />
+
+            </VerticalStackLayout>
+
+            <Label Text="Telefone com DDD" />
+
+            <Entry
+                x:Name="TelefoneEntry"
+                Placeholder="Exemplo: 45999990000"
+                Keyboard="Telephone"
+                MaxLength="20" />
+
+            <Label Text="E-mail" />
+
+            <Entry
+                x:Name="EmailEntry"
+                Placeholder="Seu e-mail"
+                Keyboard="Email"
+                MaxLength="254" />
+
+            <Label Text="Senha" />
+
+            <Entry
+                x:Name="SenhaEntry"
+                Placeholder="No mínimo 8 caracteres"
+                IsPassword="True"
+                MaxLength="128" />
+
+            <Label Text="Confirme a senha" />
+
+            <Entry
+                x:Name="ConfirmacaoSenhaEntry"
+                Placeholder="Digite a senha novamente"
+                IsPassword="True"
+                MaxLength="128" />
+
+                <Label
+            Text="Endereço cadastral"
+            FontSize="20"
+            FontAttributes="Bold"
+            Margin="0,16,0,0" />
+
+                <Label Text="CEP" />
+
+                <Entry
+                    x:Name="CepEntry"
+                    Placeholder="CEP sem pontuação"
+                    Keyboard="Numeric"
+                    MaxLength="8" />
+
+                <Label Text="Logradouro" />
+
+                <Entry
+                    x:Name="LogradouroEntry"
+                    Placeholder="Rua, avenida ou outro logradouro"
+                    MaxLength="200" />
+
+                <Label Text="Número" />
+
+                <Entry
+                    x:Name="NumeroEntry"
+                    Placeholder="Número do endereço"
+                    MaxLength="20" />
+
+                <HorizontalStackLayout Spacing="8">
+                    <CheckBox
+                        x:Name="SemNumeroCheckBox"
+                        CheckedChanged="OnSemNumeroChanged" />
+
+                    <Label
+                        Text="Endereço sem número"
+                        VerticalOptions="Center" />
+                </HorizontalStackLayout>
+
+                <Label Text="Complemento opcional" />
+
+                <Entry
+                    x:Name="ComplementoEntry"
+                    Placeholder="Apartamento, bloco ou sala"
+                    MaxLength="100" />
+
+                <Label Text="Bairro" />
+
+                <Entry
+                    x:Name="BairroEntry"
+                    Placeholder="Informe o bairro"
+                    MaxLength="100" />
+
+                <Label Text="Cidade" />
+
+                <Entry
+                    x:Name="CidadeEntry"
+                    Placeholder="Informe a cidade"
+                    Text="Foz do Iguaçu"
+                    MaxLength="100" />
+
+                <Label Text="UF" />
+
+                <Entry
+                    x:Name="UfEntry"
+                    Placeholder="Exemplo: PR"
+                    Text="PR"
+                    MaxLength="2" />
+
+                <Label Text="Código do município IBGE" />
+
+                <Entry
+                    x:Name="CodigoMunicipioEntry"
+                    Placeholder="Código com 7 números"
+                    Text="4108304"
+                    Keyboard="Numeric"
+                    MaxLength="7" />
+
+                <Label Text="Ponto de referência opcional" />
+
+                <Entry
+                    x:Name="PontoReferenciaEntry"
+                    Placeholder="Uma referência para localizar o endereço"
+                    MaxLength="200" />
+
+                <Label
+                    Text="As entregas são realizadas somente em Foz do Iguaçu."
+                    FontSize="13" />
+
+                            <Label
+                Text="As entregas são realizadas somente em Foz do Iguaçu."
+                FontSize="13" />
+
+            <Label
+                x:Name="MensagemLabel"
+                IsVisible="False"
+                TextColor="DarkRed" />
+
+            <ActivityIndicator
+                x:Name="CarregandoIndicator"
+                IsVisible="False"
+                IsRunning="False" />
+
+            <Button
+                x:Name="CadastrarButton"
+                Text="Criar cadastro"
+                Clicked="OnCadastrarClicked"
+                Margin="0,12,0,16" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
