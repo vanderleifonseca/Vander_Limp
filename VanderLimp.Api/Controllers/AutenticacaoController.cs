@@ -135,6 +135,118 @@ public class AutenticacaoController : ControllerBase
         }
     }
 
+
+    [HttpGet("sessao")]
+    public async Task<IActionResult> ConsultarSessao(
+        CancellationToken cancellationToken)
+    {
+        Response.Headers.CacheControl = "no-store";
+
+        if (!System.Net.Http.Headers.AuthenticationHeaderValue.TryParse(
+                Request.Headers.Authorization.ToString(),
+                out var autorizacao) ||
+            !string.Equals(
+                autorizacao.Scheme,
+                "Bearer",
+                StringComparison.OrdinalIgnoreCase) ||
+            string.IsNullOrWhiteSpace(autorizacao.Parameter))
+        {
+            return Unauthorized(new
+            {
+                mensagem = "Sessão inválida ou expirada."
+            });
+        }
+
+        try
+        {
+            var sessao = await _sessaoServico.ValidarAsync(
+                autorizacao.Parameter,
+                cancellationToken);
+
+            if (sessao is null)
+            {
+                return Unauthorized(new
+                {
+                    mensagem = "Sessão inválida ou expirada."
+                });
+            }
+
+            return Ok(new
+            {
+                usuarioId = sessao.UsuarioId,
+                clienteId = sessao.ClienteId,
+                nome = sessao.Nome,
+                dataExpiracao = sessao.DataExpiracao
+            });
+        }
+        catch (MySqlException ex)
+        {
+            _logger.LogError(
+                ex,
+                "Falha ao consultar sessão. Código MySQL: {Codigo}",
+                ex.Number);
+
+            return Problem(
+                title: "Não foi possível verificar a sessão.",
+                statusCode: 503);
+        }
+    }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(
+        CancellationToken cancellationToken)
+    {
+        Response.Headers.CacheControl = "no-store";
+
+        if (!System.Net.Http.Headers.AuthenticationHeaderValue.TryParse(
+                Request.Headers.Authorization.ToString(),
+                out var autorizacao) ||
+            !string.Equals(
+                autorizacao.Scheme,
+                "Bearer",
+                StringComparison.OrdinalIgnoreCase) ||
+            string.IsNullOrWhiteSpace(autorizacao.Parameter))
+        {
+            return Unauthorized(new
+            {
+                mensagem = "Informe o token da sessão."
+            });
+        }
+
+        string token = autorizacao.Parameter;
+
+        if (token.Length != 64 ||
+            token.Any(c => !((c >= '0' && c <= '9') ||
+                            (c >= 'A' && c <= 'F'))))
+        {
+            return Unauthorized(new
+            {
+                mensagem = "Token inválido."
+            });
+        }
+
+        try
+        {
+            await _sessaoServico.RevogarAsync(
+                token,
+                cancellationToken);
+
+            return NoContent();
+        }
+        catch (MySqlException ex)
+        {
+            _logger.LogError(
+                ex,
+                "Falha ao encerrar sessão. Código MySQL: {Codigo}",
+                ex.Number);
+
+            return Problem(
+                title: "Não foi possível encerrar a sessão.",
+                statusCode: 503);
+        }
+    }
+
+
     private IActionResult CredenciaisInvalidas()
     {
         return Unauthorized(new

@@ -53,4 +53,72 @@ public class AutenticacaoApiServico
 
         return resultado;
     }
+
+    public async Task<SessaoUsuarioDados?> ConsultarSessaoAsync(string token, CancellationToken cancellationToken = default)
+    {
+        using var requisicao = new HttpRequestMessage(HttpMethod.Get, "api/autenticacao/sessao");
+
+        requisicao.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        using var resposta = await _httpClient.SendAsync(requisicao, cancellationToken);
+
+        if (resposta.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            return null;
+        }
+
+        if (!resposta.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException(
+                "Não foi possível verificar sua sessão. Tente novamente.");
+        }
+
+        var sessao =
+            await resposta.Content.ReadFromJsonAsync<SessaoUsuarioDados>(
+                cancellationToken: cancellationToken);
+
+        if (sessao is null ||
+            sessao.UsuarioId <= 0 ||
+            sessao.ClienteId <= 0)
+        {
+            throw new InvalidOperationException(
+                "A API retornou uma resposta de sessão inválida.");
+        }
+
+        return sessao;
+    }
+
+    public async Task LogoutAsync(
+    string token,
+    CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return;
+
+        using var requisicao = new HttpRequestMessage(
+            HttpMethod.Post,
+            "api/autenticacao/logout");
+
+        requisicao.Headers.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer",
+                token);
+
+        using var resposta = await _httpClient.SendAsync(
+            requisicao,
+            cancellationToken);
+
+        if (resposta.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            // A API já não aceita essa sessão.
+            return;
+        }
+
+        if (!resposta.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException(
+                "Não foi possível encerrar a sessão no servidor. " +
+                "Tente novamente.");
+        }
+    }
 }

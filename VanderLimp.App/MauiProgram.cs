@@ -34,6 +34,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ClienteApiServico>();
 		builder.Services.AddTransient<AutenticacaoApiServico>();
 		builder.Services.AddSingleton<SessaoLocalServico>();
+		builder.Services.AddTransient<ProdutoApiServico>();
 
 #if DEBUG
         builder.Logging.AddDebug();

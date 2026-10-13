@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:dados="clr-namespace:VanderLimp.App.Dados"
+    x:Class="VanderLimp.App.Views.ProdutosPage"
+    Title="Produtos">
+
+    <Grid
+        Padding="20"
+        RowDefinitions="Auto,Auto,Auto,*"
+        RowSpacing="12">
+
+        <Label
+            Text="Produtos Vander Limp"
+            FontSize="24"
+            FontAttributes="Bold" />
+
+        <Button
+            Grid.Row="1"
+            x:Name="AtualizarButton"
+            Text="Atualizar produtos"
+            Clicked="OnAtualizarClicked" />
+
+        <VerticalStackLayout
+            Grid.Row="2"
+            Spacing="8">
+
+            <ActivityIndicator
+                x:Name="CarregandoIndicator"
+                IsVisible="False"
+                IsRunning="False" />
+
+            <Label
+                x:Name="MensagemLabel"
+                IsVisible="False"
+                TextColor="DarkRed" />
+
+        </VerticalStackLayout>
+
+        <CollectionView
+            Grid.Row="3"
+            x:Name="ProdutosCollection"
+            SelectionMode="None">
+
+            <CollectionView.EmptyView>
+                <Label
+                    Text="Nenhum produto para exibir."
+                    HorizontalTextAlignment="Center"
+                    Margin="0,20" />
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="dados:ProdutoDados">
+
+                    <VerticalStackLayout
+                        Padding="0,12"
+                        Spacing="4">
+
+                        <Label
+                            Text="{Binding Codigo,
+                                StringFormat='Código: {0}'}"
+                            FontSize="13" />
+
+                        <Label
+                            Text="{Binding Descricao}"
+                            FontSize="18"
+                            FontAttributes="Bold" />
+
+                        <Label
+                            Text="{Binding Marca,
+                                StringFormat='Marca: {0}'}" />
+
+                        <Label
+                            Text="{Binding Conteudo,
+                                StringFormat='Conteúdo: {0}'}" />
+
+                        <Label
+                            Text="{Binding UnidadeVenda,
+                                StringFormat='Unidade de venda: {0}'}" />
+
+                        <Label
+                            Text="{Binding PrecoUnitario,
+                                StringFormat='Preço por UN: R$ {0:N2}'}"
+                            FontSize="17"
+                            FontAttributes="Bold" />
+
+                        <BoxView
+                            HeightRequest="1"
+                            Color="LightGray"
+                            Margin="0,8,0,0" />
+
+                    </VerticalStackLayout>
+
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+        </CollectionView>
+
+    </Grid>
+
+</ContentPage>

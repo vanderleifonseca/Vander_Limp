@@ -8,8 +8,18 @@
     Title="Vander Limp">
 
     <ShellContent
+        Title="Entrar"
+        ContentTemplate="{DataTemplate views:LoginPage}"
+        Route="LoginPage" />
+
+    <ShellContent
         Title="Meu cadastro"
         ContentTemplate="{DataTemplate views:CadastroClientePage}"
         Route="CadastroClientePage" />
+
+    <ShellContent
+        Title="Meus pedidos"
+        ContentTemplate="{DataTemplate views:PedidosPage}"
+        Route="PedidosPage" />
 
 </Shell>

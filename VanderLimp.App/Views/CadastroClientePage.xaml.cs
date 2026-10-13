@@ -140,11 +140,12 @@ public partial class CadastroClientePage : ContentPage
             SenhaEntry.Text = string.Empty;
             ConfirmacaoSenhaEntry.Text = string.Empty;
 
-            await DisplayAlertAsync(
-                "Cadastro concluído",
-                resultado.Mensagem,
-                "OK");
+            await EntrarAposCadastroAsync(dados);
         }
+
+
+
+        
         catch (HttpRequestException)
         {
             MostrarErro(
@@ -183,6 +184,73 @@ public partial class CadastroClientePage : ContentPage
         }
     }
 
+    private async Task EntrarAposCadastroAsync(
+    ClienteCadastroDados dados)
+    {
+        try
+        {
+            var servicos = Handler?.MauiContext?.Services;
+
+            var autenticacao = servicos?
+                .GetService<AutenticacaoApiServico>();
+
+            var sessaoLocal = servicos?
+                .GetService<SessaoLocalServico>();
+
+            if (autenticacao is null || sessaoLocal is null)
+            {
+                throw new InvalidOperationException(
+                    "Os serviços de login não estão disponíveis.");
+            }
+
+            var login = await autenticacao.LoginAsync(new LoginDados
+            {
+                Email = dados.Email,
+                Senha = dados.Senha
+            });
+
+            await sessaoLocal.SalvarTokenAsync(login.Token);
+
+            await Shell.Current.GoToAsync(
+                "//PedidosPage",
+                new Dictionary<string, object>
+                {
+                    ["nome"] = login.Nome
+                });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(ex);
+
+            await DisplayAlertAsync(
+                "Cadastro realizado",
+                "Seu cadastro foi salvo, mas não foi possível " +
+                "abrir o sistema automaticamente. " +
+                "Não faça o cadastro novamente. " +
+                "Entre com o e-mail e a senha cadastrados.",
+                "OK");
+
+            try
+            {
+                await Shell.Current.GoToAsync("//LoginPage");
+            }
+            catch (Exception erroNavegacao)
+            {
+                System.Diagnostics.Debug.WriteLine(erroNavegacao);
+
+                MostrarErro(
+                    "O cadastro foi salvo, mas não foi possível abrir " +
+                    "a tela de login. Feche e abra o aplicativo.");
+            }
+        }
+        finally
+        {
+            // Remove as senhas do objeto após a tentativa de login.
+            dados.Senha = string.Empty;
+            dados.ConfirmacaoSenha = string.Empty;
+        }
+    }                                                                                                                                  
+
     private void MostrarErro(string mensagem)
     {
         MensagemLabel.Text = mensagem;
@@ -199,5 +267,9 @@ public partial class CadastroClientePage : ContentPage
         string texto = Texto(campo);
 
         return string.IsNullOrWhiteSpace(texto) ? null : texto;
+    }
+    private async void OnIrParaLoginClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//LoginPage");
     }
 }
