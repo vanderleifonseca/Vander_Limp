@@ -13,42 +13,31 @@ public class AutenticacaoApiServico
         _httpClient = httpClient;
     }
 
-    public async Task<LoginResultadoDados> LoginAsync(
-        LoginDados dados,
-        CancellationToken cancellationToken = default)
+    public async Task<LoginResultadoDados> LoginAsync(LoginDados dados, CancellationToken cancellationToken = default)
     {
-        using var resposta = await _httpClient.PostAsJsonAsync(
-            "api/autenticacao/login",
-            dados,
-            cancellationToken);
+        using var resposta = await _httpClient.PostAsJsonAsync("api/autenticacao/login", dados, cancellationToken);
 
         if (resposta.StatusCode == HttpStatusCode.Unauthorized)
         {
-            throw new InvalidOperationException(
-                "E-mail ou senha inválidos.");
+            throw new InvalidOperationException("E-mail ou senha inválidos.");
         }
 
         if (resposta.StatusCode == HttpStatusCode.BadRequest)
         {
-            throw new InvalidOperationException(
-                "Confira o e-mail e a senha informados.");
+            throw new InvalidOperationException("Confira o e-mail e a senha informados.");
         }
 
         if (!resposta.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException(
-                "Não foi possível realizar o login. Tente novamente.");
+            throw new InvalidOperationException("Não foi possível realizar o login. Tente novamente.");
         }
 
         var resultado =
-            await resposta.Content.ReadFromJsonAsync<LoginResultadoDados>(
-                cancellationToken: cancellationToken);
+            await resposta.Content.ReadFromJsonAsync<LoginResultadoDados>(cancellationToken: cancellationToken);
 
-        if (resultado is null ||
-            string.IsNullOrWhiteSpace(resultado.Token))
+        if (resultado is null || string.IsNullOrWhiteSpace(resultado.Token))
         {
-            throw new InvalidOperationException(
-                "A API retornou uma resposta de login inválida.");
+            throw new InvalidOperationException("A API retornou uma resposta de login inválida.");
         }
 
         return resultado;
@@ -69,44 +58,31 @@ public class AutenticacaoApiServico
 
         if (!resposta.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException(
-                "Não foi possível verificar sua sessão. Tente novamente.");
+            throw new InvalidOperationException("Não foi possível verificar sua sessão. Tente novamente.");
         }
 
         var sessao =
-            await resposta.Content.ReadFromJsonAsync<SessaoUsuarioDados>(
-                cancellationToken: cancellationToken);
+            await resposta.Content.ReadFromJsonAsync<SessaoUsuarioDados>(cancellationToken: cancellationToken);
 
         if (sessao is null ||
-            sessao.UsuarioId <= 0 ||
-            sessao.ClienteId <= 0)
+            sessao.UsuarioId <= 0 || sessao.ClienteId <= 0)
         {
-            throw new InvalidOperationException(
-                "A API retornou uma resposta de sessão inválida.");
+            throw new InvalidOperationException("A API retornou uma resposta de sessão inválida.");
         }
 
         return sessao;
     }
 
-    public async Task LogoutAsync(
-    string token,
-    CancellationToken cancellationToken = default)
+    public async Task LogoutAsync(string token, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(token))
             return;
 
-        using var requisicao = new HttpRequestMessage(
-            HttpMethod.Post,
-            "api/autenticacao/logout");
+        using var requisicao = new HttpRequestMessage(HttpMethod.Post, "api/autenticacao/logout");
 
-        requisicao.Headers.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue(
-                "Bearer",
-                token);
+        requisicao.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-        using var resposta = await _httpClient.SendAsync(
-            requisicao,
-            cancellationToken);
+        using var resposta = await _httpClient.SendAsync(requisicao, cancellationToken);
 
         if (resposta.StatusCode == HttpStatusCode.Unauthorized)
         {
@@ -116,9 +92,7 @@ public class AutenticacaoApiServico
 
         if (!resposta.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException(
-                "Não foi possível encerrar a sessão no servidor. " +
-                "Tente novamente.");
+            throw new InvalidOperationException("Não foi possível encerrar a sessão no servidor. " + "Tente novamente.");
         }
     }
 }

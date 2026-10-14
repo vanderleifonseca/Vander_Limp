@@ -35,6 +35,7 @@ public static class MauiProgram
 		builder.Services.AddTransient<AutenticacaoApiServico>();
 		builder.Services.AddSingleton<SessaoLocalServico>();
 		builder.Services.AddTransient<ProdutoApiServico>();
+		builder.Services.AddTransient<VanderLimp.App.Views.ProdutosPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

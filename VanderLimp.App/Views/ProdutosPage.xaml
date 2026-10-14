@@ -8,7 +8,7 @@
 
     <Grid
         Padding="20"
-        RowDefinitions="Auto,Auto,Auto,*"
+        RowDefinitions="Auto,Auto,Auto,*,Auto"
         RowSpacing="12">
 
         <Label
@@ -51,11 +51,11 @@
             </CollectionView.EmptyView>
 
             <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="dados:ProdutoDados">
+                <DataTemplate x:DataType="dados:ProdutoSelecaoDados">
 
                     <VerticalStackLayout
                         Padding="0,12"
-                        Spacing="4">
+                        Spacing="6">
 
                         <Label
                             Text="{Binding Codigo,
@@ -75,14 +75,51 @@
                             Text="{Binding Conteudo,
                                 StringFormat='Conteúdo: {0}'}" />
 
-                        <Label
-                            Text="{Binding UnidadeVenda,
-                                StringFormat='Unidade de venda: {0}'}" />
+                        <Label Text="Unidade de venda: UN" />
 
                         <Label
                             Text="{Binding PrecoUnitario,
                                 StringFormat='Preço por UN: R$ {0:N2}'}"
                             FontSize="17"
+                            FontAttributes="Bold" />
+
+                        <Grid
+                            ColumnDefinitions="Auto,Auto,Auto,*"
+                            ColumnSpacing="12">
+
+                            <Button
+                                Text="−"
+                                WidthRequest="48"
+                                CommandParameter="{Binding .}"
+                                Clicked="OnDiminuirClicked"
+                                SemanticProperties.Description="Diminuir quantidade" />
+
+                            <Label
+                                Grid.Column="1"
+                                Text="{Binding Quantidade}"
+                                FontSize="20"
+                                VerticalOptions="Center"
+                                HorizontalTextAlignment="Center"
+                                MinimumWidthRequest="30" />
+
+                            <Button
+                                Grid.Column="2"
+                                Text="+"
+                                WidthRequest="48"
+                                CommandParameter="{Binding .}"
+                                Clicked="OnAumentarClicked"
+                                SemanticProperties.Description="Aumentar quantidade" />
+
+                            <Label
+                                Grid.Column="3"
+                                Text="UN"
+                                VerticalOptions="Center" />
+
+                        </Grid>
+
+                        <Label
+                            Text="{Binding Subtotal,
+                                StringFormat='Subtotal: R$ {0:N2}'}"
                             FontAttributes="Bold" />
 
                         <BoxView
@@ -96,6 +133,26 @@
             </CollectionView.ItemTemplate>
 
         </CollectionView>
+
+        <VerticalStackLayout
+            Grid.Row="4"
+            Spacing="4">
+
+            <BoxView
+                HeightRequest="1"
+                Color="LightGray" />
+
+            <Label
+                x:Name="TotalLabel"
+                Text="Total dos produtos: R$ 0,00"
+                FontSize="20"
+                FontAttributes="Bold" />
+
+            <Label
+                Text="A taxa de entrega será calculada na finalização."
+                FontSize="12" />
+
+        </VerticalStackLayout>
 
     </Grid>
 

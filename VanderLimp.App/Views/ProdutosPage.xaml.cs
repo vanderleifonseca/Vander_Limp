@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
-using Microsoft.Extensions.DependencyInjection;
+using System.ComponentModel;
+using System.Globalization;
 using VanderLimp.App.Dados;
 using VanderLimp.App.Servicos;
 
@@ -7,14 +8,19 @@ namespace VanderLimp.App.Views;
 
 public partial class ProdutosPage : ContentPage
 {
-    private readonly ObservableCollection<ProdutoDados> _produtos = new();
+    private readonly ObservableCollection<ProdutoSelecaoDados> _produtos = new();
+    private readonly ProdutoApiServico _produtoServico;
+
+    private static readonly CultureInfo CulturaBrasil =
+        CultureInfo.GetCultureInfo("pt-BR");
 
     private bool _carregando;
 
-    public ProdutosPage()
+    public ProdutosPage(ProdutoApiServico produtoServico)
     {
         InitializeComponent();
 
+        _produtoServico = produtoServico;
         ProdutosCollection.ItemsSource = _produtos;
     }
 
@@ -30,6 +36,50 @@ public partial class ProdutosPage : ContentPage
         await CarregarProdutosAsync();
     }
 
+    private void OnAumentarClicked(object? sender, EventArgs e)
+    {
+        if (_carregando)
+            return;
+
+        if (sender is Button button &&
+            button.CommandParameter is ProdutoSelecaoDados produto &&
+            produto.Quantidade < int.MaxValue)
+        {
+            produto.Quantidade++;
+        }
+    }
+
+    private void OnDiminuirClicked(object? sender, EventArgs e)
+    {
+        if (_carregando)
+            return;
+
+        if (sender is Button button &&
+            button.CommandParameter is ProdutoSelecaoDados produto &&
+            produto.Quantidade > 0)
+        {
+            produto.Quantidade--;
+        }
+    }
+
+    private void OnProdutoAlterado(
+        object? sender,
+        PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ProdutoSelecaoDados.Quantidade))
+        {
+            AtualizarTotal();
+        }
+    }
+
+    private void AtualizarTotal()
+    {
+        decimal total = _produtos.Sum(produto => produto.Subtotal);
+
+        TotalLabel.Text =
+            $"Total dos produtos: {total.ToString("C2", CulturaBrasil)}";
+    }
+
     private async Task CarregarProdutosAsync()
     {
         if (_carregando)
@@ -38,30 +88,42 @@ public partial class ProdutosPage : ContentPage
         _carregando = true;
 
         AtualizarButton.IsEnabled = false;
+        ProdutosCollection.IsEnabled = false;
         CarregandoIndicator.IsVisible = true;
         CarregandoIndicator.IsRunning = true;
         MensagemLabel.IsVisible = false;
 
-        // Evita manter na tela uma lista antiga se a atualização falhar.
+        // Guarda as quantidades para os produtos que continuarem ativos.
+        var quantidades = _produtos.ToDictionary(
+            produto => produto.Id,
+            produto => produto.Quantidade);
+
+        foreach (var produto in _produtos)
+        {
+            produto.PropertyChanged -= OnProdutoAlterado;
+        }
+
         _produtos.Clear();
+        AtualizarTotal();
 
         try
         {
-            var servico = Handler?.MauiContext?.Services
-                .GetService<ProdutoApiServico>();
-
-            if (servico is null)
-            {
-                MostrarErro("O serviço de produtos não está disponível.");
-                return;
-            }
-
-            var produtos = await servico.ListarAsync();
+            var produtos = await _produtoServico.ListarAsync();
 
             foreach (var produto in produtos)
             {
-                _produtos.Add(produto);
+                var selecao = new ProdutoSelecaoDados(produto);
+
+                if (quantidades.TryGetValue(produto.Id, out int quantidade))
+                {
+                    selecao.Quantidade = quantidade;
+                }
+
+                selecao.PropertyChanged += OnProdutoAlterado;
+                _produtos.Add(selecao);
             }
+
+            AtualizarTotal();
         }
         catch (UnauthorizedAccessException)
         {
@@ -107,6 +169,7 @@ public partial class ProdutosPage : ContentPage
         {
             _carregando = false;
             AtualizarButton.IsEnabled = true;
+            ProdutosCollection.IsEnabled = true;
             CarregandoIndicator.IsRunning = false;
             CarregandoIndicator.IsVisible = false;
         }
