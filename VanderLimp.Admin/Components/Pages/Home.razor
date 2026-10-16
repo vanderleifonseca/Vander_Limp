@@ -1,0 +1,17 @@
+﻿@page "/"
+
+@inject NavigationManager Navegacao
+
+<PageTitle>Vander Limp — Administração</PageTitle>
+
+<p>Abrindo o painel...</p>
+
+@code {
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Navegacao.NavigateTo("/login", replace: true);
+        }
+    }
+}

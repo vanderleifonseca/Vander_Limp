@@ -1,0 +1,506 @@
+@page "/produtos"
+
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.Forms
+@using VanderLimp.Admin.Dados
+@using VanderLimp.Admin.Servicos
+
+@inject ProdutoAdminApiServico ProdutoApi
+@inject SessaoAdminServico Sessao
+
+<PageTitle>Produtos — Vander Limp</PageTitle>
+
+<h1>Produtos</h1>
+
+@if (!string.IsNullOrWhiteSpace(_erro))
+{
+    <div class="alert alert-danger" role="alert">
+        @_erro
+    </div>
+}
+
+@if (!Sessao.EstaAutenticado)
+{
+    <div class="alert alert-warning">
+        Entre com sua conta administrativa para acessar os produtos.
+    </div>
+
+    <a href="/login" class="btn btn-primary">Ir para o login</a>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(_sucesso))
+    {
+        <div class="alert alert-success" role="status">
+            @_sucesso
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="h4">
+                @(_idEdicao.HasValue ? "Editar produto" : "Novo produto")
+            </h2>
+
+            <EditForm Model="_formulario"
+                      OnValidSubmit="SalvarAsync"
+                      FormName="cadastroProduto"
+                      @key="_formulario">
+
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <fieldset disabled="@Ocupado">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="codigo" class="form-label">
+                                Código
+                            </label>
+
+                            <InputText id="codigo"
+                                       class="form-control"
+                                       maxlength="30"
+                                       @bind-Value="_formulario.Codigo" />
+
+                            <ValidationMessage
+                                For="@(() => _formulario.Codigo)" />
+                        </div>
+
+                        <div class="col-md-8 mb-3">
+                            <label for="descricao" class="form-label">
+                                Descrição
+                            </label>
+
+                            <InputText id="descricao"
+                                       class="form-control"
+                                       maxlength="200"
+                                       @bind-Value="_formulario.Descricao" />
+
+                            <ValidationMessage
+                                For="@(() => _formulario.Descricao)" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="marca" class="form-label">
+                                Marca
+                            </label>
+
+                            <InputText id="marca"
+                                       class="form-control"
+                                       maxlength="100"
+                                       @bind-Value="_formulario.Marca" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="conteudo" class="form-label">
+                                Conteúdo
+                            </label>
+
+                            <InputText id="conteudo"
+                                       class="form-control"
+                                       placeholder="Ex.: 500 mL ou 5 L"
+                                       maxlength="60"
+                                       @bind-Value="_formulario.Conteudo" />
+
+                            <ValidationMessage
+                                For="@(() => _formulario.Conteudo)" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="preco" class="form-label">
+                                Preço por UN (R$)
+                            </label>
+
+                            <InputNumber id="preco"
+                                         class="form-control"
+                                         step="0.01"
+                                         min="0.01"
+                                         max="99999999.99"
+                                         @bind-Value="_formulario.PrecoUnitario" />
+
+                            <ValidationMessage
+                                For="@(() => _formulario.PrecoUnitario)" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="unidade" class="form-label">
+                                Unidade de venda
+                            </label>
+
+                            <input id="unidade"
+                                   class="form-control"
+                                   value="UN"
+                                   readonly />
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <InputCheckbox id="ativo"
+                                       class="form-check-input"
+                                       @bind-Value="_formulario.Ativo" />
+
+                        <label for="ativo" class="form-check-label">
+                            Produto ativo
+                        </label>
+                    </div>
+
+                    <p class="text-muted">
+                        Somente produtos ativos aparecem no aplicativo.
+                    </p>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            @(_salvando
+                                ? "Salvando..."
+                                : _idEdicao.HasValue
+                                    ? "Salvar alterações"
+                                    : "Cadastrar produto")
+                        </button>
+
+                        @if (_idEdicao.HasValue)
+                        {
+                            <button type="button"
+                                    class="btn btn-secondary"
+                                    @onclick="CancelarEdicao">
+                                Cancelar edição
+                            </button>
+                        }
+                    </div>
+                </fieldset>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4 mb-0">Produtos cadastrados</h2>
+
+        <button type="button"
+                class="btn btn-outline-primary"
+                disabled="@Ocupado"
+                @onclick="AtualizarListaAsync">
+            @(_carregando ? "Carregando..." : "Atualizar produtos")
+        </button>
+    </div>
+
+        <div class="row g-3 mb-3">
+        <div class="col-md-7">
+            <label for="buscaProduto" class="form-label">
+                Buscar produto
+            </label>
+
+            <input id="buscaProduto"
+                   class="form-control"
+                   placeholder="Código, descrição ou marca"
+                   @bind="_busca"
+                   @bind:event="oninput" />
+        </div>
+
+        <div class="col-md-3">
+            <label for="situacaoProduto" class="form-label">
+                Situação
+            </label>
+
+            <select id="situacaoProduto"
+                    class="form-select"
+                    @bind="_situacao">
+                <option value="Todos">Todos</option>
+                <option value="Ativos">Ativos</option>
+                <option value="Inativos">Inativos</option>
+            </select>
+        </div>
+
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="button"
+                    class="btn btn-outline-secondary w-100"
+                    @onclick="LimparFiltros">
+                Limpar filtros
+            </button>
+        </div>
+    </div>
+
+    @if (_carregando)
+    {
+        <p>Carregando produtos...</p>
+    }
+    else if (ProdutosFiltrados.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Descrição</th>
+                        <th>Marca</th>
+                        <th>Conteúdo</th>
+                        <th>Unidade</th>
+                        <th>Preço</th>
+                        <th>Situação</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var produto in ProdutosFiltrados)
+                    {
+                        <tr @key="produto.Id">
+                            <td>@produto.Codigo</td>
+                            <td>@produto.Descricao</td>
+                            <td>@produto.Marca</td>
+                            <td>@produto.Conteudo</td>
+                            <td>@produto.UnidadeVenda</td>
+                            <td>
+                                @produto.PrecoUnitario.ToString("C2", CulturaBrasil)
+                            </td>
+                            <td>
+                                @(produto.Ativo ? "Ativo" : "Inativo")
+                            </td>
+                            <td>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary"
+                                        disabled="@Ocupado"
+                                        @onclick="() => Editar(produto)">
+                                    Editar
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (string.IsNullOrWhiteSpace(_erro))
+    {
+        <p>
+            @(_produtos.Count == 0
+                ? "Nenhum produto cadastrado."
+                : "Nenhum produto encontrado com os filtros informados.")
+        </p>
+    }
+}
+
+@code {
+    private static readonly CultureInfo CulturaBrasil =
+        CultureInfo.GetCultureInfo("pt-BR");
+
+    private List<ProdutoAdminDados> _produtos = new();
+    private ProdutoCadastroDados _formulario = new();
+
+    private int? _idEdicao;
+    private bool _carregando;
+    private bool _salvando;
+    private string? _erro;
+    private string? _sucesso;
+
+    private bool Ocupado => _carregando || _salvando;
+
+    private string _busca = string.Empty;
+    private string _situacao = "Todos";
+
+    private IEnumerable<ProdutoAdminDados> ProdutosFiltrados
+    {
+        get
+        {
+            string termo = _busca.Trim();
+
+            return _produtos.Where(produto =>
+                (_situacao == "Todos" ||
+                (_situacao == "Ativos" && produto.Ativo) ||
+                (_situacao == "Inativos" && !produto.Ativo)) &&
+                (string.IsNullOrWhiteSpace(termo) ||
+                ContemTexto(produto.Codigo, termo) ||
+                ContemTexto(produto.Descricao, termo) ||
+                ContemTexto(produto.Marca, termo)));
+        }
+    }
+
+    private static bool ContemTexto(string? texto, string termo)
+    {
+        return CulturaBrasil.CompareInfo.IndexOf(
+            texto ?? string.Empty,
+            termo,
+            CompareOptions.IgnoreCase |
+            CompareOptions.IgnoreNonSpace) >= 0;
+    }
+
+    private void LimparFiltros()
+    {
+        _busca = string.Empty;
+        _situacao = "Todos";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Sessao.EstaAutenticado)
+        {
+            await CarregarAsync();
+        }
+    }
+
+    private bool ConferirSessao()
+    {
+        if (Sessao.EstaAutenticado)
+            return true;
+
+        EncerrarSessaoLocal();
+        return false;
+    }
+
+    private void EncerrarSessaoLocal()
+    {
+        Sessao.Limpar();
+        _produtos.Clear();
+        _formulario = new();
+        _idEdicao = null;
+        _sucesso = null;
+        _erro = "Sua sessão terminou. Entre novamente no painel.";
+    }
+
+    private async Task AtualizarListaAsync()
+    {
+        if (Ocupado)
+            return;
+
+        _sucesso = null;
+        await CarregarAsync();
+    }
+
+    private async Task CarregarAsync()
+    {
+        if (_carregando || !ConferirSessao())
+            return;
+
+        _carregando = true;
+        _erro = null;
+        _produtos.Clear();
+
+        try
+        {
+            _produtos = await ProdutoApi.ListarAsync(Sessao.Token!);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            EncerrarSessaoLocal();
+        }
+        catch (HttpRequestException)
+        {
+            _erro =
+                "Não foi possível carregar a lista. " +
+                "Confira se a API está executando e clique em Atualizar produtos.";
+        }
+        catch (OperationCanceledException)
+        {
+            _erro =
+                "O tempo de consulta terminou. Clique em Atualizar produtos.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            _erro = ex.Message;
+        }
+        catch (Exception)
+        {
+            _erro = "Não foi possível carregar os produtos.";
+        }
+        finally
+        {
+            _carregando = false;
+        }
+    }
+
+    private void Editar(ProdutoAdminDados produto)
+    {
+        if (Ocupado || !ConferirSessao())
+            return;
+
+        _erro = null;
+        _sucesso = null;
+        _idEdicao = produto.Id;
+
+        // Copia os valores para não alterar a tabela antes de salvar.
+        _formulario = new ProdutoCadastroDados
+        {
+            Codigo = produto.Codigo,
+            Descricao = produto.Descricao,
+            Marca = produto.Marca,
+            Conteudo = produto.Conteudo,
+            PrecoUnitario = produto.PrecoUnitario,
+            Ativo = produto.Ativo
+        };
+    }
+
+    private void CancelarEdicao()
+    {
+        if (Ocupado)
+            return;
+
+        _formulario = new();
+        _idEdicao = null;
+        _erro = null;
+        _sucesso = null;
+    }
+
+    private async Task SalvarAsync()
+    {
+        if (Ocupado || !ConferirSessao())
+            return;
+
+        _salvando = true;
+        _erro = null;
+        _sucesso = null;
+
+        try
+        {
+            if (_idEdicao is int id)
+            {
+                await ProdutoApi.AtualizarAsync(
+                    Sessao.Token!,
+                    id,
+                    _formulario);
+
+                _sucesso = "Produto atualizado com sucesso.";
+            }
+            else
+            {
+                await ProdutoApi.CadastrarAsync(
+                    Sessao.Token!,
+                    _formulario);
+
+                _sucesso = "Produto cadastrado com sucesso.";
+            }
+
+            _formulario = new();
+            _idEdicao = null;
+
+            await CarregarAsync();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            EncerrarSessaoLocal();
+        }
+        catch (HttpRequestException)
+        {
+            _erro =
+                "A comunicação com a API falhou. Antes de salvar novamente, " +
+                "atualize a lista e confira se a alteração foi gravada.";
+        }
+        catch (OperationCanceledException)
+        {
+            _erro =
+                "O tempo de espera terminou. Antes de salvar novamente, " +
+                "atualize a lista e confira se a alteração foi gravada.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            _erro = ex.Message;
+        }
+        catch (Exception)
+        {
+            _erro =
+                "Não foi possível confirmar a gravação. " +
+                "Atualize a lista antes de tentar novamente.";
+        }
+        finally
+        {
+            _salvando = false;
+        }
+    }
+}

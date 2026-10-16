@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="VanderLimp.App.Views.PedidosPage"
+    Title="Meus pedidos">
+
+    <VerticalStackLayout
+        Padding="24"
+        Spacing="16">
+
+        <Image
+            Source="logo.jpeg"
+            HeightRequest="100"
+            Aspect="AspectFit"
+            SemanticProperties.Description="Logo Vander Limp" />
+
+        <Label
+            x:Name="BoasVindasLabel"
+            Text="Bem-vindo à Vander Limp"
+            FontSize="22"
+            FontAttributes="Bold" />
+
+        <Label
+            Text="Meus pedidos"
+            FontSize="20"
+            FontAttributes="Bold" />
+
+        <Label
+            Text="Consulte os produtos disponíveis na Vander Limp." />
+
+        <Button
+            Text="Ver produtos"
+            Clicked="OnVerProdutosClicked" />
+
+        <Button
+            x:Name="SairButton"
+            Text="Sair"
+            Clicked="OnSairClicked"
+            Margin="0,16,0,0" />
+
+    </VerticalStackLayout>
+
+</ContentPage>
