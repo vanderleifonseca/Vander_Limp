@@ -120,6 +120,65 @@ public class SessaoServico
         };
     }
 
+    public async Task<SessaoAdministradorDados?> ValidarAdministradorAsync(
+    string? token,
+    CancellationToken cancellationToken = default)
+    {
+        if (!TokenTemFormatoValido(token))
+            return null;
+
+        string tokenHash = CalcularHash(token!);
+
+        await using var conexao =
+            new MySqlConnection(ObterConexao());
+
+        await conexao.OpenAsync(cancellationToken);
+
+        const string sql = """
+            SELECT
+                s.Id AS SessaoId,
+                u.Id AS UsuarioId,
+                u.Email,
+                s.DataExpiracao
+            FROM SessoesUsuarios s
+            INNER JOIN Usuarios u ON u.Id = s.UsuarioId
+            WHERE s.TokenHash = @TokenHash
+            AND s.Revogada = 0
+            AND s.DataExpiracao > @Agora
+            AND u.Ativo = 1
+            AND u.TipoAcesso = 'Administrador'
+            LIMIT 1;
+            """;
+
+        await using var comando = new MySqlCommand(sql, conexao);
+
+        comando.Parameters.AddWithValue("@TokenHash", tokenHash);
+        comando.Parameters.AddWithValue("@Agora", DateTime.UtcNow);
+
+        await using var leitor =
+            await comando.ExecuteReaderAsync(cancellationToken);
+
+        if (!await leitor.ReadAsync(cancellationToken))
+            return null;
+
+        return new SessaoAdministradorDados
+        {
+            SessaoId = leitor.GetInt64(
+                leitor.GetOrdinal("SessaoId")),
+
+            UsuarioId = leitor.GetInt32(
+                leitor.GetOrdinal("UsuarioId")),
+
+            Email = leitor.GetString(
+                leitor.GetOrdinal("Email")),
+
+            DataExpiracao = DateTime.SpecifyKind(
+                leitor.GetDateTime(
+                    leitor.GetOrdinal("DataExpiracao")),
+                DateTimeKind.Utc)
+        };
+    }
+
     public async Task RevogarAsync(
         string? token,
         CancellationToken cancellationToken = default)

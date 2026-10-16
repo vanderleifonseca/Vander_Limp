@@ -134,9 +134,9 @@
 
         </CollectionView>
 
-        <VerticalStackLayout
+                <VerticalStackLayout
             Grid.Row="4"
-            Spacing="4">
+            Spacing="10">
 
             <BoxView
                 HeightRequest="1"
@@ -152,8 +152,14 @@
                 Text="A taxa de entrega será calculada na finalização."
                 FontSize="12" />
 
+            <Button
+                x:Name="RevisarPedidoButton"
+                Text="Revisar pedido"
+                Clicked="OnRevisarPedidoClicked" />
+
         </VerticalStackLayout>
 
     </Grid>
 
 </ContentPage>
+

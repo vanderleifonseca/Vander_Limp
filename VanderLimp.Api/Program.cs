@@ -8,6 +8,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<SenhaServico>();
 builder.Services.AddScoped<SessaoServico>();
 builder.Services.AddScoped<ProdutoServico>();
+builder.Services.AddScoped<ClienteAdminServico>();
 
 var app = builder.Build();
 

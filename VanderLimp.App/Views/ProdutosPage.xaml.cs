@@ -174,6 +174,58 @@ public partial class ProdutosPage : ContentPage
             CarregandoIndicator.IsVisible = false;
         }
     }
+    private async void OnRevisarPedidoClicked(object? sender, EventArgs e)
+    {
+        if (_carregando)
+            return;
+
+        var itens = _produtos
+            .Where(produto => produto.Quantidade > 0)
+            .Select(produto => new ItemPedidoDados
+            {
+                ProdutoId = produto.Id,
+                Codigo = produto.Codigo,
+                Descricao = produto.Descricao,
+                Marca = produto.Marca,
+                Conteudo = produto.Conteudo,
+                UnidadeVenda = produto.UnidadeVenda,
+                Quantidade = produto.Quantidade,
+                PrecoUnitario = produto.PrecoUnitario
+            })
+            .ToList();
+
+        if (itens.Count == 0)
+        {
+            await DisplayAlertAsync(
+                "Selecione os produtos",
+                "Adicione pelo menos uma unidade para revisar o pedido.",
+                "OK");
+
+            return;
+        }
+
+        RevisarPedidoButton.IsEnabled = false;
+
+        try
+        {
+            await Shell.Current.GoToAsync(
+                nameof(RevisarPedidoPage),
+                new Dictionary<string, object>
+                {
+                    ["itens"] = itens
+                });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(ex);
+
+            MostrarErro("Não foi possível abrir a revisão do pedido.");
+        }
+        finally
+        {
+            RevisarPedidoButton.IsEnabled = true;
+        }
+    }
 
     private void MostrarErro(string mensagem)
     {

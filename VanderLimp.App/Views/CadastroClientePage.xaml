@@ -214,6 +214,10 @@
                 Clicked="OnCadastrarClicked"
                 Margin="0,12,0,16" />
 
+            <Button
+                Text="Já tenho cadastro"
+                Clicked="OnIrParaLoginClicked" />
+
         </VerticalStackLayout>
     </ScrollView>
 

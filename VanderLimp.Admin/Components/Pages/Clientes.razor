@@ -1,0 +1,250 @@
+@page "/clientes"
+
+@using System.Globalization
+@using VanderLimp.Admin.Dados
+@using VanderLimp.Admin.Servicos
+
+@inject ClienteAdminApiServico ClienteApi
+@inject SessaoAdminServico Sessao
+
+<PageTitle>Clientes — Vander Limp</PageTitle>
+
+<h1>Clientes</h1>
+
+@if (!string.IsNullOrWhiteSpace(_erro))
+{
+    <div class="alert alert-danger" role="alert">
+        @_erro
+    </div>
+}
+
+@if (!Sessao.EstaAutenticado)
+{
+    <div class="alert alert-warning">
+        Entre com sua conta administrativa para consultar os clientes.
+    </div>
+
+    <a href="/login" class="btn btn-primary">Ir para o login</a>
+}
+else
+{
+    <p>Consulte os clientes cadastrados pelo aplicativo.</p>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-9">
+            <label for="buscaCliente" class="form-label">
+                Buscar cliente
+            </label>
+
+            <input id="buscaCliente"
+                   class="form-control"
+                   placeholder="Nome, CPF/CNPJ, e-mail ou telefone"
+                   @bind="_busca"
+                   @bind:event="oninput" />
+        </div>
+
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="button"
+                    class="btn btn-outline-primary w-100"
+                    disabled="@_carregando"
+                    @onclick="CarregarAsync">
+                @(_carregando ? "Carregando..." : "Atualizar clientes")
+            </button>
+        </div>
+    </div>
+
+    @if (_carregando)
+    {
+        <p>Carregando clientes...</p>
+    }
+    else if (ClientesFiltrados.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Nome / Razão social</th>
+                        <th>Tipo</th>
+                        <th>CPF / CNPJ</th>
+                        <th>E-mail</th>
+                        <th>Telefone</th>
+                        <th>Usuário</th>
+                        <th>Compras</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var cliente in ClientesFiltrados)
+                    {
+                        <tr @key="cliente.Id">
+                            <td>
+                                <strong>@cliente.NomeRazaoSocial</strong>
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    cliente.NomeFantasia))
+                                {
+                                    <div class="small text-muted">
+                                        @cliente.NomeFantasia
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    cliente.NomeResponsavel))
+                                {
+                                    <div class="small">
+                                        Responsável: @cliente.NomeResponsavel
+                                    </div>
+                                }
+                            </td>
+
+                            <td>@cliente.TipoPessoa</td>
+                            <td>@cliente.Documento</td>
+                            <td>@cliente.Email</td>
+                            <td>@cliente.Telefone</td>
+                            <td>@(cliente.Ativo ? "Ativo" : "Inativo")</td>
+                            <td>
+                                @(cliente.ComprasBloqueadas
+                                    ? "Bloqueadas"
+                                    : "Sem bloqueio")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (string.IsNullOrWhiteSpace(_erro))
+    {
+        <p>
+            @(_clientes.Count == 0
+                ? "Nenhum cliente cadastrado."
+                : "Nenhum cliente encontrado para a busca informada.")
+        </p>
+    }
+}
+
+@code {
+    private static readonly CompareInfo Comparador =
+        CultureInfo.GetCultureInfo("pt-BR").CompareInfo;
+
+    private List<ClienteAdminDados> _clientes = new();
+    private string _busca = string.Empty;
+    private string? _erro;
+    private bool _carregando;
+
+    private IEnumerable<ClienteAdminDados> ClientesFiltrados
+    {
+        get
+        {
+            string termo = _busca.Trim();
+
+            if (string.IsNullOrWhiteSpace(termo))
+                return _clientes;
+
+            string termoDocumento = SomenteLetrasENumeros(termo);
+            string termoTelefone = SomenteNumeros(termo);
+
+            bool buscaNumerica = termo.Any(char.IsDigit) &&
+                                 !termo.Any(char.IsLetter);
+
+            return _clientes.Where(cliente =>
+                ContemTexto(cliente.NomeRazaoSocial, termo) ||
+                ContemTexto(cliente.NomeFantasia, termo) ||
+                ContemTexto(cliente.NomeResponsavel, termo) ||
+                ContemTexto(cliente.Email, termo) ||
+                ContemTexto(cliente.Documento, termo) ||
+                ContemTexto(cliente.Telefone, termo) ||
+                (termoDocumento.Length > 0 &&
+                 SomenteLetrasENumeros(cliente.Documento).Contains(
+                     termoDocumento,
+                     StringComparison.OrdinalIgnoreCase)) ||
+                (buscaNumerica &&
+                 termoTelefone.Length > 0 &&
+                 SomenteNumeros(cliente.Telefone).Contains(
+                     termoTelefone)));
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Sessao.EstaAutenticado)
+        {
+            await CarregarAsync();
+        }
+    }
+
+    private async Task CarregarAsync()
+    {
+        if (_carregando)
+            return;
+
+        if (!Sessao.EstaAutenticado)
+        {
+            EncerrarSessaoLocal();
+            return;
+        }
+
+        _carregando = true;
+        _erro = null;
+        _clientes.Clear();
+
+        try
+        {
+            _clientes = await ClienteApi.ListarAsync(Sessao.Token!);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            EncerrarSessaoLocal();
+        }
+        catch (HttpRequestException)
+        {
+            _erro =
+                "Não foi possível conectar à API. " +
+                "Confira se ela está executando.";
+        }
+        catch (OperationCanceledException)
+        {
+            _erro =
+                "O tempo de espera terminou. Tente atualizar novamente.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            _erro = ex.Message;
+        }
+        catch (Exception)
+        {
+            _erro = "Não foi possível carregar os clientes.";
+        }
+        finally
+        {
+            _carregando = false;
+        }
+    }
+
+    private void EncerrarSessaoLocal()
+    {
+        Sessao.Limpar();
+        _clientes.Clear();
+        _erro = "Sua sessão terminou. Entre novamente no painel.";
+    }
+
+    private static bool ContemTexto(string? texto, string termo)
+    {
+        return Comparador.IndexOf(
+            texto ?? string.Empty,
+            termo,
+            CompareOptions.IgnoreCase |
+            CompareOptions.IgnoreNonSpace) >= 0;
+    }
+
+    private static string SomenteNumeros(string texto)
+    {
+        return new string(texto.Where(char.IsDigit).ToArray());
+    }
+
+    private static string SomenteLetrasENumeros(string texto)
+    {
+        return new string(
+            texto.Where(char.IsLetterOrDigit).ToArray());
+    }
+}
