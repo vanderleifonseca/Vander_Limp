@@ -7,6 +7,7 @@ namespace VanderLimp.App.Views;
 public partial class LoginPage : ContentPage
 {
     private bool _entrando;
+    private bool _temTokenSalvo;
 
     public LoginPage()
     {
@@ -17,22 +18,30 @@ public partial class LoginPage : ContentPage
     {
         base.OnAppearing();
 
+        await EntrarAsync(somenteSessaoSalva: true);
+    }
+
+    private async void OnEntrarClicked(object? sender, EventArgs e)
+    {
+        await EntrarAsync(somenteSessaoSalva: false);
+    }
+
+    private async Task EntrarAsync(bool somenteSessaoSalva)
+    {
         if (_entrando)
-    return;
+            return;
 
         _entrando = true;
 
-        EntrarButton.Text = "Entrar";
-        SenhaEntry.Text = string.Empty;
-
-        EntrarButton.IsEnabled = false;
         MensagemLabel.IsVisible = false;
+        EntrarButton.IsEnabled = false;
         CarregandoIndicator.IsVisible = true;
         CarregandoIndicator.IsRunning = true;
 
         try
         {
-            var servicos = Handler?.MauiContext?.Services;
+            var servicos =
+                Application.Current?.Handler?.MauiContext?.Services;
 
             var autenticacao = servicos?
                 .GetService<AutenticacaoApiServico>();
@@ -42,133 +51,87 @@ public partial class LoginPage : ContentPage
 
             if (autenticacao is null || sessaoLocal is null)
             {
-                MostrarErro("O serviço de sessão não está disponível.");
+                MostrarErro("O serviço de login não está disponível.");
                 return;
             }
 
             string? token = await sessaoLocal.ObterTokenAsync();
 
-            // Sem token salvo, permanece na tela de login.
-            if (string.IsNullOrWhiteSpace(token))
-                return;
+            _temTokenSalvo = !string.IsNullOrWhiteSpace(token);
 
-            var sessao = await autenticacao.ConsultarSessaoAsync(token);
-
-            if (sessao is null)
+            if (_temTokenSalvo)
             {
-                // A API recusou a sessão com HTTP 401.
-                sessaoLocal.EncerrarSessaoLocal();
+                EmailEntry.IsVisible = false;
+                SenhaEntry.IsVisible = false;
+                SenhaEntry.Text = string.Empty;
 
-                MostrarErro(
-                    "Sua sessão terminou. Informe o e-mail e a senha.");
+                var sessao =
+                    await autenticacao.ConsultarSessaoAsync(token!);
+
+                if (sessao is null)
+                {
+                    sessaoLocal.EncerrarSessaoLocal();
+                    _temTokenSalvo = false;
+
+                    MostrarErro(
+                        "A sessão foi encerrada ou expirou. " +
+                        "Entre uma vez para salvar uma nova sessão.");
+
+                    return;
+                }
+
+                await AbrirPedidosAsync(sessao.Nome);
                 return;
             }
 
-            await Shell.Current.GoToAsync(
-                "//PedidosPage",
-                new Dictionary<string, object>
-                {
-                    ["nome"] = sessao.Nome
-                });
-        }
-        catch (HttpRequestException)
-        {
-            MostrarErro(
-                "Não foi possível conectar à API para verificar sua sessão. " +
-                "Confira a conexão. Sua sessão salva foi mantida.");
-        }
-        catch (OperationCanceledException)
-        {
-            MostrarErro(
-                "O tempo de verificação terminou. " +
-                "Sua sessão salva foi mantida.");
-        }
-        catch (InvalidOperationException ex)
-        {
-            MostrarErro(ex.Message);
-        }
-        catch (Exception)
-        {
-            MostrarErro(
-                "Não foi possível acessar ou verificar a sessão salva. " +
-                "Você pode tentar entrar com e-mail e senha.");
-        }
-        finally
-        {
-            _entrando = false;
-            EntrarButton.IsEnabled = true;
-            CarregandoIndicator.IsRunning = false;
-            CarregandoIndicator.IsVisible = false;
-        }
-    }
+            if (somenteSessaoSalva)
+                return;
 
-    private async void OnEntrarClicked(object? sender, EventArgs e)
-    {
-        if (_entrando)
-            return;
-
-        MensagemLabel.IsVisible = false;
-
-        if (string.IsNullOrWhiteSpace(EmailEntry.Text) ||
-            string.IsNullOrWhiteSpace(SenhaEntry.Text))
-        {
-            MostrarErro("Informe o e-mail e a senha.");
-            return;
-        }
-
-        var servicos = Handler?.MauiContext?.Services;
-
-        var autenticacao = servicos?
-            .GetService<AutenticacaoApiServico>();
-
-        var sessaoLocal = servicos?
-            .GetService<SessaoLocalServico>();
-
-        if (autenticacao is null || sessaoLocal is null)
-        {
-            MostrarErro("O serviço de login não está disponível.");
-            return;
-        }
-
-        var dados = new LoginDados
-        {
-            Email = EmailEntry.Text.Trim(),
-            Senha = SenhaEntry.Text ?? string.Empty
-        };
-
-        _entrando = true;
-        EntrarButton.IsEnabled = false;
-        CarregandoIndicator.IsVisible = true;
-        CarregandoIndicator.IsRunning = true;
-
-        bool tokenSalvo = false;
-
-        try
-        {
-            var resultado = await autenticacao.LoginAsync(dados);
-
-            await sessaoLocal.SalvarTokenAsync(resultado.Token);
-            tokenSalvo = true;
-
-            SenhaEntry.Text = string.Empty;
-
-        await Shell.Current.GoToAsync(
-            "//PedidosPage",
-            new Dictionary<string, object>
+            if (string.IsNullOrWhiteSpace(EmailEntry.Text) ||
+                string.IsNullOrWhiteSpace(SenhaEntry.Text))
             {
-                ["nome"] = resultado.Nome
-            });
+                MostrarErro("Informe o e-mail e a senha.");
+                return;
+            }
+
+            var dados = new LoginDados
+            {
+                Email = EmailEntry.Text.Trim(),
+                Senha = SenhaEntry.Text ?? string.Empty
+            };
+
+            try
+            {
+                var resultado = await autenticacao.LoginAsync(dados);
+
+                await sessaoLocal.SalvarTokenAsync(resultado.Token);
+
+                _temTokenSalvo = true;
+                SenhaEntry.Text = string.Empty;
+
+                await AbrirPedidosAsync(resultado.Nome);
+            }
+            finally
+            {
+                dados.Senha = string.Empty;
+            }
         }
         catch (HttpRequestException)
         {
             MostrarErro(
-                "Não foi possível conectar à API. " +
-                "Confira a conexão e se ela está rodando.");
+                _temTokenSalvo
+                    ? "Confira se a API está ligada e a conexão USB está ativa. " +
+                      "Sua sessão foi mantida. Toque em Tentar novamente."
+                    : "Não foi possível conectar à API. " +
+                      "Confira se ela está executando.");
         }
         catch (OperationCanceledException)
         {
             MostrarErro(
-                "O tempo de espera terminou. Tente novamente.");
+                _temTokenSalvo
+                    ? "A verificação demorou. Sua sessão foi mantida. " +
+                      "Toque em Tentar novamente."
+                    : "O tempo de espera terminou. Tente novamente.");
         }
         catch (InvalidOperationException ex)
         {
@@ -179,20 +142,34 @@ public partial class LoginPage : ContentPage
             System.Diagnostics.Debug.WriteLine(ex);
 
             MostrarErro(
-                $"Falha no login: {ex.GetType().Name}\n{ex.Message}");
+                "Não foi possível concluir a entrada. Tente novamente.");
         }
         finally
         {
             _entrando = false;
+
+            EmailEntry.IsVisible = !_temTokenSalvo;
+            SenhaEntry.IsVisible = !_temTokenSalvo;
+
+            EntrarButton.Text = _temTokenSalvo
+                ? "Tentar novamente"
+                : "Entrar";
+
+            EntrarButton.IsEnabled = true;
+
             CarregandoIndicator.IsRunning = false;
             CarregandoIndicator.IsVisible = false;
-            EntrarButton.IsEnabled = !tokenSalvo;
-
-            if (tokenSalvo)
-            {
-                EntrarButton.Text = "Login realizado";
-            }
         }
+    }
+
+    private static async Task AbrirPedidosAsync(string nome)
+    {
+        await Shell.Current.GoToAsync(
+            "//PedidosPage",
+            new Dictionary<string, object>
+            {
+                ["nome"] = nome
+            });
     }
 
     private void MostrarErro(string mensagem)
@@ -205,6 +182,9 @@ public partial class LoginPage : ContentPage
         object? sender,
         EventArgs e)
     {
+        if (_entrando)
+            return;
+
         await Shell.Current.GoToAsync("//CadastroClientePage");
     }
 }

@@ -46,7 +46,7 @@ else
         <div class="col-md-3 d-flex align-items-end">
             <button type="button"
                     class="btn btn-outline-primary w-100"
-                    disabled="@_carregando"
+                    disabled="@Ocupado"
                     @onclick="CarregarAsync">
                 @(_carregando ? "Carregando..." : "Atualizar clientes")
             </button>
@@ -55,7 +55,7 @@ else
 
     @if (_carregando)
     {
-        <p>Carregando clientes...</p>
+        <p role="status">Carregando clientes...</p>
     }
     else if (ClientesFiltrados.Any())
     {
@@ -70,6 +70,7 @@ else
                         <th>Telefone</th>
                         <th>Usuário</th>
                         <th>Compras</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
 
@@ -102,10 +103,20 @@ else
                             <td>@cliente.Email</td>
                             <td>@cliente.Telefone</td>
                             <td>@(cliente.Ativo ? "Ativo" : "Inativo")</td>
+
                             <td>
                                 @(cliente.ComprasBloqueadas
                                     ? "Bloqueadas"
                                     : "Sem bloqueio")
+                            </td>
+
+                            <td>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary"
+                                        disabled="@Ocupado"
+                                        @onclick="() => VerEnderecosAsync(cliente)">
+                                    Ver endereços
+                                </button>
                             </td>
                         </tr>
                     }
@@ -121,6 +132,113 @@ else
                 : "Nenhum cliente encontrado para a busca informada.")
         </p>
     }
+
+    @if (_clienteSelecionado is not null)
+    {
+        <section class="card mt-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h4 mb-0">
+                        Endereços de @_clienteSelecionado.NomeRazaoSocial
+                    </h2>
+
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            disabled="@_carregandoEnderecos"
+                            @onclick="FecharEnderecos">
+                        Fechar
+                    </button>
+                </div>
+
+                @if (_carregandoEnderecos)
+                {
+                    <p role="status">Carregando endereços...</p>
+                }
+                else if (!string.IsNullOrWhiteSpace(_erroEnderecos))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @_erroEnderecos
+                    </div>
+
+                    <button type="button"
+                            class="btn btn-outline-primary"
+                            @onclick="RecarregarEnderecosAsync">
+                        Tentar novamente
+                    </button>
+                }
+                else if (_enderecos.Count == 0)
+                {
+                    <p>Nenhum endereço encontrado para este cliente.</p>
+                }
+                else
+                {
+                    @foreach (var endereco in _enderecos)
+                    {
+                        <div class="border rounded p-3 mb-3"
+                             @key="endereco.Id">
+
+                            @if (!string.IsNullOrWhiteSpace(endereco.Apelido))
+                            {
+                                <h3 class="h6">@endereco.Apelido</h3>
+                            }
+
+                            <p class="mb-1">
+                                <strong>@endereco.Logradouro</strong>,
+                                @(endereco.SemNumero
+                                    ? "sem número"
+                                    : endereco.Numero)
+                            </p>
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                endereco.Complemento))
+                            {
+                                <p class="mb-1">
+                                    Complemento: @endereco.Complemento
+                                </p>
+                            }
+
+                            <p class="mb-1">
+                                @endereco.Bairro — @endereco.Cidade / @endereco.UF
+                            </p>
+
+                            <p class="mb-1">
+                                CEP: @endereco.CEP
+                            </p>
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                endereco.PontoReferencia))
+                            {
+                                <p class="mb-1">
+                                    Referência: @endereco.PontoReferencia
+                                </p>
+                            }
+
+                            <p class="mb-0">
+                                Situação:
+                                <strong>
+                                    @(endereco.Ativo ? "Ativo" : "Inativo")
+                                </strong>
+
+                                @if (endereco.EhCadastral)
+                                {
+                                    <span class="badge bg-secondary ms-2">
+                                        Cadastral
+                                    </span>
+                                }
+
+                                @if (endereco.EhEntregaPadrao)
+                                {
+                                    <span class="badge bg-primary ms-2">
+                                        Entrega padrão
+                                    </span>
+                                }
+                            </p>
+                        </div>
+                    }
+                }
+            </div>
+        </section>
+    }
 }
 
 @code {
@@ -128,9 +246,18 @@ else
         CultureInfo.GetCultureInfo("pt-BR").CompareInfo;
 
     private List<ClienteAdminDados> _clientes = new();
+    private List<EnderecoAdminDados> _enderecos = new();
+
+    private ClienteAdminDados? _clienteSelecionado;
+
     private string _busca = string.Empty;
     private string? _erro;
+    private string? _erroEnderecos;
+
     private bool _carregando;
+    private bool _carregandoEnderecos;
+
+    private bool Ocupado => _carregando || _carregandoEnderecos;
 
     private IEnumerable<ClienteAdminDados> ClientesFiltrados
     {
@@ -175,7 +302,7 @@ else
 
     private async Task CarregarAsync()
     {
-        if (_carregando)
+        if (Ocupado)
             return;
 
         if (!Sessao.EstaAutenticado)
@@ -187,10 +314,19 @@ else
         _carregando = true;
         _erro = null;
         _clientes.Clear();
+        FecharEnderecos();
 
         try
         {
-            _clientes = await ClienteApi.ListarAsync(Sessao.Token!);
+            var clientes = await ClienteApi.ListarAsync(Sessao.Token!);
+
+            if (!Sessao.EstaAutenticado)
+            {
+                EncerrarSessaoLocal();
+                return;
+            }
+
+            _clientes = clientes;
         }
         catch (UnauthorizedAccessException)
         {
@@ -221,10 +357,85 @@ else
         }
     }
 
+    private async Task VerEnderecosAsync(ClienteAdminDados cliente)
+    {
+        if (Ocupado)
+            return;
+
+        if (!Sessao.EstaAutenticado)
+        {
+            EncerrarSessaoLocal();
+            return;
+        }
+
+        _clienteSelecionado = cliente;
+        _enderecos.Clear();
+        _erroEnderecos = null;
+        _carregandoEnderecos = true;
+
+        try
+        {
+            var enderecos = await ClienteApi.ListarEnderecosAsync(
+                Sessao.Token!,
+                cliente.Id);
+
+            if (!Sessao.EstaAutenticado)
+            {
+                EncerrarSessaoLocal();
+                return;
+            }
+
+            _enderecos = enderecos;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            EncerrarSessaoLocal();
+        }
+        catch (HttpRequestException)
+        {
+            _erroEnderecos =
+                "Não foi possível conectar à API.";
+        }
+        catch (OperationCanceledException)
+        {
+            _erroEnderecos =
+                "O tempo de espera terminou. Tente novamente.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            _erroEnderecos = ex.Message;
+        }
+        catch (Exception)
+        {
+            _erroEnderecos =
+                "Não foi possível carregar os endereços.";
+        }
+        finally
+        {
+            _carregandoEnderecos = false;
+        }
+    }
+
+    private async Task RecarregarEnderecosAsync()
+    {
+        if (_clienteSelecionado is not null)
+        {
+            await VerEnderecosAsync(_clienteSelecionado);
+        }
+    }
+
+    private void FecharEnderecos()
+    {
+        _clienteSelecionado = null;
+        _enderecos.Clear();
+        _erroEnderecos = null;
+    }
+
     private void EncerrarSessaoLocal()
     {
         Sessao.Limpar();
         _clientes.Clear();
+        FecharEnderecos();
         _erro = "Sua sessão terminou. Entre novamente no painel.";
     }
 

@@ -40,6 +40,7 @@ public static class MauiProgram
 #if DEBUG
         builder.Logging.AddDebug();
 #endif
+builder.Services.AddTransient<EnderecoEntregaApiServico>();
 
         return builder.Build();
     }
