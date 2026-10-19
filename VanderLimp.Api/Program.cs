@@ -6,6 +6,11 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<SenhaServico>();
+builder.Services.AddScoped<SessaoServico>();
+builder.Services.AddScoped<ProdutoServico>();
+builder.Services.AddScoped<ClienteAdminServico>();
+builder.Services.AddScoped<EnderecoEntregaServico>();
+builder.Services.AddScoped<PedidoServico>();
 
 var app = builder.Build();
 

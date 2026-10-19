@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:dados="clr-namespace:VanderLimp.App.Dados"
+    x:Class="VanderLimp.App.Views.RevisarPedidoPage"
+    Title="Revisar pedido">
+
+    <Grid
+        Padding="20"
+        RowDefinitions="Auto,*,Auto"
+        RowSpacing="16">
+
+        <Label
+            Text="Confira os produtos"
+            FontSize="24"
+            FontAttributes="Bold" />
+
+        <CollectionView
+            Grid.Row="1"
+            x:Name="ItensCollection"
+            SelectionMode="None">
+
+            <CollectionView.EmptyView>
+                <Label
+                    Text="Nenhum produto selecionado."
+                    HorizontalTextAlignment="Center"
+                    Margin="0,20" />
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="dados:ItemPedidoDados">
+
+                    <VerticalStackLayout
+                        Padding="0,12"
+                        Spacing="6">
+
+                        <Label
+                            Text="{Binding Codigo,
+                                StringFormat='Código: {0}'}"
+                            FontSize="13" />
+
+                        <Label
+                            Text="{Binding Descricao}"
+                            FontSize="18"
+                            FontAttributes="Bold" />
+
+                        <Label
+                            Text="{Binding Marca,
+                                StringFormat='Marca: {0}'}" />
+
+                        <Label
+                            Text="{Binding Conteudo,
+                                StringFormat='Conteúdo: {0}'}" />
+
+                        <Label
+                            Text="{Binding Quantidade,
+                                StringFormat='Quantidade: {0} UN'}" />
+
+                        <Label
+                            Text="{Binding PrecoUnitario,
+                                StringFormat='Preço por UN: R$ {0:N2}'}" />
+
+                        <Label
+                            Text="{Binding Subtotal,
+                                StringFormat='Subtotal: R$ {0:N2}'}"
+                            FontAttributes="Bold" />
+
+                        <BoxView
+                            HeightRequest="1"
+                            Color="LightGray"
+                            Margin="0,8,0,0" />
+
+                    </VerticalStackLayout>
+
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+            <CollectionView.Footer>
+                <VerticalStackLayout
+                    Padding="0,16"
+                    Spacing="12">
+
+                    <Label
+                        Text="Endereço de entrega"
+                        FontSize="20"
+                        FontAttributes="Bold" />
+
+                    <Label
+                        Text="Entregamos somente em Foz do Iguaçu."
+                        FontSize="13" />
+
+                    <ActivityIndicator
+                        x:Name="CarregandoEnderecosIndicator"
+                        IsVisible="False"
+                        IsRunning="False" />
+
+                    <Label
+                        x:Name="MensagemEnderecoLabel"
+                        IsVisible="False"
+                        TextColor="DarkRed" />
+
+                    <Picker
+                        x:Name="EnderecoPicker"
+                        Title="Selecione o endereço"
+                        IsEnabled="False"
+                        SelectedIndexChanged="OnEnderecoChanged" />
+
+                    <Label
+                        x:Name="DetalhesEnderecoLabel"
+                        IsVisible="False" />
+
+                    <Button
+                        x:Name="AtualizarEnderecosButton"
+                        Text="Atualizar endereços"
+                        Clicked="OnAtualizarEnderecosClicked" />
+
+                    <BoxView
+                        HeightRequest="1"
+                        Color="LightGray"
+                        Margin="0,12,0,0" />
+
+                    <Label
+                        Text="Forma de pagamento"
+                        FontSize="20"
+                        FontAttributes="Bold" />
+
+                    <Picker
+                        x:Name="FormaPagamentoPicker"
+                        Title="Selecione a forma de pagamento"
+                        SelectedIndexChanged="OnFormaPagamentoChanged" />
+
+                    <Label
+                        x:Name="OrientacaoPagamentoLabel"
+                        IsVisible="False"
+                        FontSize="14" />
+
+                </VerticalStackLayout>
+            </CollectionView.Footer>
+
+        </CollectionView>
+
+        <VerticalStackLayout
+            Grid.Row="2"
+            Spacing="10">
+
+            <Label
+                x:Name="TotalLabel"
+                Text="Total dos produtos: R$ 0,00"
+                FontSize="20"
+                FontAttributes="Bold" />
+
+            <Label
+                Text="A taxa de entrega será calculada na finalização."
+                FontSize="12" />
+
+            <Button
+                Text="Alterar produtos"
+                Clicked="OnAlterarProdutosClicked" />
+
+        </VerticalStackLayout>
+
+    </Grid>
+
+</ContentPage>

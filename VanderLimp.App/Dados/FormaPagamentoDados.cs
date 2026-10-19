@@ -1,0 +1,8 @@
+namespace VanderLimp.App.Dados;
+
+public class FormaPagamentoDados
+{
+    public string Codigo { get; set; } = string.Empty;
+
+    public string Descricao { get; set; } = string.Empty;
+}

@@ -1,0 +1,125 @@
+@page "/login"
+
+
+@using VanderLimp.Admin.Dados
+@using VanderLimp.Admin.Servicos
+
+@inject AutenticacaoAdminApiServico Autenticacao
+@inject SessaoAdminServico Sessao
+
+<PageTitle>Entrar — Vander Limp</PageTitle>
+
+<div class="mx-auto" style="max-width: 420px;">
+    <h1>Vander Limp</h1>
+    <p>Acesso administrativo</p>
+
+    @if (Sessao.EstaAutenticado)
+    {
+        <div class="alert alert-success" role="status">
+            Você está conectado como <strong>@Sessao.Email</strong>.
+        </div>
+
+        <a href="/produtos" class="btn btn-primary">
+    Acessar produtos
+</a>
+    }
+    else
+    {
+        <EditForm Model="_dados"
+                  OnValidSubmit="EntrarAsync"
+                  FormName="loginAdministrador">
+
+            <DataAnnotationsValidator />
+
+            <fieldset disabled="@_entrando">
+                <div class="mb-3">
+                    <label for="emailAdmin" class="form-label">
+                        E-mail
+                    </label>
+
+                    <InputText id="emailAdmin"
+                               class="form-control"
+                               type="email"
+                               autocomplete="username"
+                               maxlength="254"
+                               @bind-Value="_dados.Email" />
+
+                    <ValidationMessage For="@(() => _dados.Email)" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="senhaAdmin" class="form-label">
+                        Senha
+                    </label>
+
+                    <InputText id="senhaAdmin"
+                               class="form-control"
+                               type="password"
+                               autocomplete="current-password"
+                               maxlength="128"
+                               @bind-Value="_dados.Senha" />
+
+                    <ValidationMessage For="@(() => _dados.Senha)" />
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">
+                    @(_entrando ? "Entrando..." : "Entrar")
+                </button>
+            </fieldset>
+        </EditForm>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_mensagem))
+    {
+        <div class="alert alert-danger mt-3" role="alert">
+            @_mensagem
+        </div>
+    }
+</div>
+
+@code {
+    private readonly LoginAdminDados _dados = new();
+    private bool _entrando;
+    private string? _mensagem;
+
+    private async Task EntrarAsync()
+    {
+        if (_entrando)
+            return;
+
+        _entrando = true;
+        _mensagem = null;
+
+        try
+        {
+            var resultado = await Autenticacao.LoginAsync(_dados);
+
+            Sessao.Iniciar(resultado);
+        }
+        catch (HttpRequestException)
+        {
+            _mensagem =
+                "Não foi possível conectar à API. " +
+                "Confira se ela está executando.";
+        }
+        catch (OperationCanceledException)
+        {
+            _mensagem =
+                "O tempo de espera terminou. Tente novamente.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            _mensagem = ex.Message;
+        }
+        catch (Exception)
+        {
+            _mensagem =
+                "Não foi possível concluir o login. Tente novamente.";
+        }
+        finally
+        {
+            _dados.Senha = string.Empty;
+            _entrando = false;
+        }
+    }
+}

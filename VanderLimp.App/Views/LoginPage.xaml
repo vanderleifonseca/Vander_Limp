@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="VanderLimp.App.Views.LoginPage"
+    Title="Entrar">
+
+    <ScrollView>
+        <VerticalStackLayout
+            Padding="24"
+            Spacing="16">
+
+            <Image
+                Source="logo.jpeg"
+                HeightRequest="140"
+                Aspect="AspectFit"
+                SemanticProperties.Description="Logo Vander Limp" />
+
+            <Label
+                Text="Entre na Vander Limp"
+                FontSize="24"
+                FontAttributes="Bold"
+                HorizontalTextAlignment="Center" />
+
+            <Label Text="E-mail" />
+
+            <Entry
+                x:Name="EmailEntry"
+                Placeholder="Informe seu e-mail"
+                Keyboard="Email"
+                MaxLength="254" />
+
+            <Label Text="Senha" />
+
+            <Entry
+                x:Name="SenhaEntry"
+                Placeholder="Informe sua senha"
+                IsPassword="True"
+                MaxLength="128" />
+
+            <Label
+                x:Name="MensagemLabel"
+                IsVisible="False"
+                TextColor="DarkRed" />
+
+            <ActivityIndicator
+                x:Name="CarregandoIndicator"
+                IsVisible="False"
+                IsRunning="False" />
+
+            <Button
+                x:Name="EntrarButton"
+                Text="Entrar"
+                Clicked="OnEntrarClicked" />
+
+            <Button
+                Text="Ainda não tenho cadastro"
+                Clicked="OnCriarCadastroClicked" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
